@@ -2,7 +2,7 @@
     <div
         ref="containerRef"
         class="relative w-full h-full overflow-hidden bg-gray-800 select-none"
-        :class="isDragging ? 'cursor-grabbing' : 'cursor-crosshair'"
+        :class="(isDragging || isPanning) ? 'cursor-grabbing' : 'cursor-crosshair'"
         @mousedown="handleMouseDown"
         @mousemove="handleMouseMove"
         @mouseup="handleMouseUp"
@@ -81,6 +81,8 @@ const viewport = reactive({
 
 // Interaction state
 const isDragging = ref(false);
+const isPanning = ref(false); // Right-click panning
+const dragButton = ref(0); // Which button started the drag
 const dragStart = ref({ x: 0, y: 0 });
 const viewportStart = ref({ x: 0, y: 0 });
 const lastPinchDistance = ref(0);
@@ -402,15 +404,23 @@ function requestRender() {
 
 // Mouse handlers
 function handleMouseDown(event: MouseEvent) {
-    if (event.button === 0) {
-        isDragging.value = true;
+    // Left-click (0) or Right-click (2) to pan
+    if (event.button === 0 || event.button === 2) {
+        dragButton.value = event.button;
         dragStart.value = { x: event.clientX, y: event.clientY };
         viewportStart.value = { x: viewport.x, y: viewport.y };
+
+        if (event.button === 0) {
+            isDragging.value = true;
+        } else {
+            isPanning.value = true;
+        }
     }
 }
 
 function handleMouseMove(event: MouseEvent) {
-    if (isDragging.value) {
+    // Pan with either left-drag or right-drag
+    if (isDragging.value || isPanning.value) {
         const dx = event.clientX - dragStart.value.x;
         const dy = event.clientY - dragStart.value.y;
         viewport.x = viewportStart.value.x - dx / viewport.zoom;
@@ -443,20 +453,27 @@ function handleMouseMove(event: MouseEvent) {
 }
 
 function handleMouseUp(event: MouseEvent) {
-    if (isDragging.value) {
+    // Handle left-click release - may place pixel if didn't drag
+    if (event.button === 0 && isDragging.value) {
         const dx = Math.abs(event.clientX - dragStart.value.x);
         const dy = Math.abs(event.clientY - dragStart.value.y);
 
-        // Only trigger click if we didn't drag
+        // Only trigger click if we didn't drag much
         if (dx < 5 && dy < 5 && hoveredPixel.value && props.canPlace) {
             emit('pixelClick', hoveredPixel.value.x, hoveredPixel.value.y);
         }
+        isDragging.value = false;
     }
-    isDragging.value = false;
+
+    // Handle right-click release - just stop panning
+    if (event.button === 2 && isPanning.value) {
+        isPanning.value = false;
+    }
 }
 
 function handleMouseLeave() {
     isDragging.value = false;
+    isPanning.value = false;
     hoveredPixel.value = null;
     requestRender();
 }

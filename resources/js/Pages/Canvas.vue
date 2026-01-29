@@ -91,7 +91,7 @@
 
         <!-- Help tooltip -->
         <div class="absolute top-4 left-1/2 transform -translate-x-1/2 text-gray-500 text-xs z-20">
-            Scroll to zoom | Drag to pan | Click to place pixel
+            Scroll to zoom | Right-click drag to pan | Left-click to place pixel
         </div>
     </div>
 </template>
