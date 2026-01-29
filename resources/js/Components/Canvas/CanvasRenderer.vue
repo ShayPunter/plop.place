@@ -42,7 +42,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
+import { ref, reactive, onMounted, onUnmounted, watch, nextTick } from 'vue';
 
 interface Props {
     config: {
@@ -96,7 +96,7 @@ const paletteRgb: [number, number, number][] = [];
 // Constants
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 50;
-const GRID_ZOOM_THRESHOLD = 6;
+const GRID_ZOOM_THRESHOLD = 4; // Show grid earlier
 
 // Initialize palette
 function initPalette() {
@@ -246,32 +246,17 @@ function render() {
         drawGrid(c, centerX, centerY, zoom, srcX, srcY, srcX2, srcY2);
     }
 
-    // Draw hover highlight
-    if (hoveredPixel.value && !isDragging.value) {
-        const hx = hoveredPixel.value.x;
-        const hy = hoveredPixel.value.y;
-        if (hx >= 0 && hx < canvasWidth && hy >= 0 && hy < canvasHeight) {
-            const px = centerX + (hx - viewport.x) * zoom;
-            const py = centerY + (hy - viewport.y) * zoom;
-
-            c.strokeStyle = 'rgba(255, 255, 255, 0.9)';
-            c.lineWidth = 2;
-            c.strokeRect(px, py, zoom, zoom);
-
-            // Inner highlight with selected color
-            c.fillStyle = props.config.palette[props.selectedColor] || '#FFFFFF';
-            c.globalAlpha = 0.3;
-            c.fillRect(px, py, zoom, zoom);
-            c.globalAlpha = 1;
-        }
-    }
-
     // Draw canvas border
     const borderX = centerX + (0 - viewport.x) * zoom;
     const borderY = centerY + (0 - viewport.y) * zoom;
-    c.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-    c.lineWidth = 1;
+    c.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    c.lineWidth = 2;
     c.strokeRect(borderX, borderY, canvasWidth * zoom, canvasHeight * zoom);
+
+    // Draw hover highlight with high contrast
+    if (hoveredPixel.value && !isDragging.value) {
+        drawCursor(c, centerX, centerY, zoom, canvasWidth, canvasHeight);
+    }
 }
 
 // Draw grid lines
@@ -285,26 +270,120 @@ function drawGrid(
     srcX2: number,
     srcY2: number
 ) {
-    c.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+    // Draw dark lines first (will show on light backgrounds)
+    c.strokeStyle = 'rgba(0, 0, 0, 0.3)';
     c.lineWidth = 1;
 
     c.beginPath();
 
     // Vertical lines
     for (let x = srcX; x <= srcX2; x++) {
-        const px = centerX + (x - viewport.x) * zoom;
-        c.moveTo(Math.round(px) + 0.5, centerY + (srcY - viewport.y) * zoom);
-        c.lineTo(Math.round(px) + 0.5, centerY + (srcY2 - viewport.y) * zoom);
+        const px = Math.round(centerX + (x - viewport.x) * zoom);
+        c.moveTo(px + 0.5, centerY + (srcY - viewport.y) * zoom);
+        c.lineTo(px + 0.5, centerY + (srcY2 - viewport.y) * zoom);
     }
 
     // Horizontal lines
     for (let y = srcY; y <= srcY2; y++) {
-        const py = centerY + (y - viewport.y) * zoom;
-        c.moveTo(centerX + (srcX - viewport.x) * zoom, Math.round(py) + 0.5);
-        c.lineTo(centerX + (srcX2 - viewport.x) * zoom, Math.round(py) + 0.5);
+        const py = Math.round(centerY + (y - viewport.y) * zoom);
+        c.moveTo(centerX + (srcX - viewport.x) * zoom, py + 0.5);
+        c.lineTo(centerX + (srcX2 - viewport.x) * zoom, py + 0.5);
     }
 
     c.stroke();
+
+    // Draw lighter lines offset by 1px (will show on dark backgrounds)
+    c.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+    c.beginPath();
+
+    for (let x = srcX; x <= srcX2; x++) {
+        const px = Math.round(centerX + (x - viewport.x) * zoom);
+        c.moveTo(px + 1.5, centerY + (srcY - viewport.y) * zoom);
+        c.lineTo(px + 1.5, centerY + (srcY2 - viewport.y) * zoom);
+    }
+
+    for (let y = srcY; y <= srcY2; y++) {
+        const py = Math.round(centerY + (y - viewport.y) * zoom);
+        c.moveTo(centerX + (srcX - viewport.x) * zoom, py + 1.5);
+        c.lineTo(centerX + (srcX2 - viewport.x) * zoom, py + 1.5);
+    }
+
+    c.stroke();
+}
+
+// Draw cursor with high contrast (works on any background)
+function drawCursor(
+    c: CanvasRenderingContext2D,
+    centerX: number,
+    centerY: number,
+    zoom: number,
+    canvasWidth: number,
+    canvasHeight: number
+) {
+    const hx = hoveredPixel.value!.x;
+    const hy = hoveredPixel.value!.y;
+
+    if (hx < 0 || hx >= canvasWidth || hy < 0 || hy >= canvasHeight) return;
+
+    const px = centerX + (hx - viewport.x) * zoom;
+    const py = centerY + (hy - viewport.y) * zoom;
+    const size = zoom;
+
+    // Draw preview of selected color with transparency
+    const selectedColorHex = props.config.palette[props.selectedColor] || '#FFFFFF';
+    c.fillStyle = selectedColorHex;
+    c.globalAlpha = 0.5;
+    c.fillRect(px, py, size, size);
+    c.globalAlpha = 1;
+
+    // Outer dark stroke (visible on light backgrounds)
+    c.strokeStyle = '#000000';
+    c.lineWidth = 3;
+    c.strokeRect(px, py, size, size);
+
+    // Inner white stroke (visible on dark backgrounds)
+    c.strokeStyle = '#FFFFFF';
+    c.lineWidth = 1;
+    c.strokeRect(px, py, size, size);
+
+    // Draw corner markers for extra visibility
+    const cornerSize = Math.min(6, size / 4);
+    c.fillStyle = '#FFFFFF';
+
+    // Top-left corner
+    c.fillRect(px - 1, py - 1, cornerSize, 2);
+    c.fillRect(px - 1, py - 1, 2, cornerSize);
+
+    // Top-right corner
+    c.fillRect(px + size - cornerSize + 1, py - 1, cornerSize, 2);
+    c.fillRect(px + size - 1, py - 1, 2, cornerSize);
+
+    // Bottom-left corner
+    c.fillRect(px - 1, py + size - 1, cornerSize, 2);
+    c.fillRect(px - 1, py + size - cornerSize + 1, 2, cornerSize);
+
+    // Bottom-right corner
+    c.fillRect(px + size - cornerSize + 1, py + size - 1, cornerSize, 2);
+    c.fillRect(px + size - 1, py + size - cornerSize + 1, 2, cornerSize);
+
+    // Dark outlines for corners
+    c.fillStyle = '#000000';
+
+    // Top-left
+    c.fillRect(px - 2, py - 2, cornerSize + 1, 1);
+    c.fillRect(px - 2, py - 2, 1, cornerSize + 1);
+
+    // Top-right
+    c.fillRect(px + size - cornerSize, py - 2, cornerSize + 2, 1);
+    c.fillRect(px + size + 1, py - 2, 1, cornerSize + 1);
+
+    // Bottom-left
+    c.fillRect(px - 2, py + size + 1, cornerSize + 1, 1);
+    c.fillRect(px - 2, py + size - cornerSize, 1, cornerSize + 2);
+
+    // Bottom-right
+    c.fillRect(px + size - cornerSize, py + size + 1, cornerSize + 2, 1);
+    c.fillRect(px + size + 1, py + size - cornerSize, 1, cornerSize + 2);
 }
 
 // Animation loop
