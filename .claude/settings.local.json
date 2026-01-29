@@ -6,7 +6,8 @@
       "Bash(composer require:*)",
       "Bash(npm install:*)",
       "Bash(./node_modules/.bin/tailwindcss:*)",
-      "Bash(php artisan:*)"
+      "Bash(php artisan:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }

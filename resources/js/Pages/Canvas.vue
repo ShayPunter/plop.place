@@ -13,47 +13,40 @@
         />
 
         <!-- Top bar -->
-        <div class="absolute top-4 left-4 flex items-center gap-4">
-            <h1 class="text-white text-2xl font-bold tracking-tight">
+        <div class="absolute top-4 left-4 flex items-center gap-4 z-20">
+            <h1 class="text-white text-2xl font-bold tracking-tight drop-shadow-lg">
                 Plop.Place
             </h1>
             <div
                 v-if="wsConnected"
-                class="flex items-center gap-2 text-green-400 text-sm"
+                class="flex items-center gap-2 text-green-400 text-sm bg-gray-900/80 px-2 py-1 rounded"
             >
                 <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
                 Live
             </div>
-            <div v-else class="flex items-center gap-2 text-yellow-400 text-sm">
+            <div v-else class="flex items-center gap-2 text-yellow-400 text-sm bg-gray-900/80 px-2 py-1 rounded">
                 <span class="w-2 h-2 bg-yellow-400 rounded-full" />
                 Connecting...
             </div>
         </div>
 
         <!-- User info -->
-        <div class="absolute top-4 right-20 flex items-center gap-4">
+        <div class="absolute top-4 right-4 z-20">
             <div
                 v-if="auth.user"
-                class="bg-gray-900/95 backdrop-blur-sm rounded-lg px-4 py-2 text-white"
+                class="bg-gray-900/90 backdrop-blur-sm rounded-lg px-4 py-2 text-white text-sm"
             >
                 <span class="text-gray-400">{{ auth.user.name }}</span>
-                <span class="mx-2">|</span>
+                <span class="mx-2 text-gray-600">|</span>
                 <span class="text-blue-400">{{ auth.user.pixels_placed }} pixels</span>
             </div>
-            <div v-else class="text-gray-400 text-sm">
+            <div v-else class="bg-gray-900/90 backdrop-blur-sm rounded-lg px-4 py-2 text-gray-400 text-sm">
                 Playing anonymously
             </div>
         </div>
 
-        <!-- Zoom controls -->
-        <CanvasControls
-            @zoom-in="handleZoomIn"
-            @zoom-out="handleZoomOut"
-            @reset-view="handleResetView"
-        />
-
         <!-- Bottom toolbar -->
-        <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-end gap-4">
+        <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-end gap-4 z-20">
             <!-- Color palette -->
             <ColorPalette
                 :palette="canvasConfig.palette"
@@ -70,7 +63,7 @@
         </div>
 
         <!-- Pixel info (bottom right) -->
-        <div class="absolute bottom-4 right-4">
+        <div class="absolute bottom-4 right-4 z-20">
             <PixelInfo
                 :x="hoveredX"
                 :y="hoveredY"
@@ -80,19 +73,32 @@
         </div>
 
         <!-- Error toast -->
-        <div
-            v-if="error"
-            class="absolute top-20 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-6 py-3 rounded-lg shadow-xl"
+        <Transition
+            enter-active-class="transition ease-out duration-200"
+            enter-from-class="opacity-0 -translate-y-2"
+            enter-to-class="opacity-100 translate-y-0"
+            leave-active-class="transition ease-in duration-150"
+            leave-from-class="opacity-100 translate-y-0"
+            leave-to-class="opacity-0 -translate-y-2"
         >
-            {{ error }}
+            <div
+                v-if="error"
+                class="absolute top-20 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-6 py-3 rounded-lg shadow-xl z-30"
+            >
+                {{ error }}
+            </div>
+        </Transition>
+
+        <!-- Help tooltip -->
+        <div class="absolute top-4 left-1/2 transform -translate-x-1/2 text-gray-500 text-xs z-20">
+            Scroll to zoom | Drag to pan | Click to place pixel
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import CanvasRenderer from '@/Components/Canvas/CanvasRenderer.vue';
-import CanvasControls from '@/Components/Canvas/CanvasControls.vue';
 import ColorPalette from '@/Components/Pixel/ColorPalette.vue';
 import CooldownTimer from '@/Components/Pixel/CooldownTimer.vue';
 import PixelInfo from '@/Components/Pixel/PixelInfo.vue';
@@ -127,7 +133,6 @@ const canvasRef = ref<InstanceType<typeof CanvasRenderer> | null>(null);
 const {
     canvasData,
     loading,
-    error: loadError,
     loadCanvas,
     setPixel,
 } = useCanvas(props.canvasConfig);
@@ -148,7 +153,7 @@ const hoveredY = ref<number | null>(null);
 const hoveredColor = ref(15);
 
 async function ensureSession(): Promise<string | null> {
-    if (props.auth.user) return null; // Authenticated users don't need session token
+    if (props.auth.user) return null;
 
     if (sessionToken.value) return sessionToken.value;
 
@@ -179,7 +184,6 @@ async function handlePixelClick(x: number, y: number) {
         return;
     }
 
-    // Ensure we have a session
     const token = await ensureSession();
 
     try {
@@ -205,11 +209,8 @@ async function handlePixelClick(x: number, y: number) {
         const data = await response.json();
 
         if (data.success) {
-            // Update local canvas immediately
             setPixel(x, y, selectedColor.value);
             canvasRef.value?.updatePixel(x, y, selectedColor.value);
-
-            // Start cooldown
             cooldownEnd.value = data.cooldown_end;
         } else {
             showError(data.message || 'Failed to place pixel');
@@ -234,19 +235,6 @@ function handleCooldownComplete() {
     cooldownEnd.value = null;
 }
 
-function handleZoomIn() {
-    // Zoom functionality is handled in the canvas component
-    // This is a placeholder for potential future external zoom control
-}
-
-function handleZoomOut() {
-    // Placeholder
-}
-
-function handleResetView() {
-    // Placeholder
-}
-
 function showError(message: string) {
     error.value = message;
     setTimeout(() => {
@@ -254,21 +242,15 @@ function showError(message: string) {
     }, 3000);
 }
 
-// Handle real-time updates
 onMounted(async () => {
-    // Load canvas data
     await loadCanvas();
-
-    // Initialize WebSocket
     initWebSocket();
 
-    // Listen for pixel updates from other users
     onPixelPlaced((pixel) => {
         setPixel(pixel.x, pixel.y, pixel.color);
         canvasRef.value?.updatePixel(pixel.x, pixel.y, pixel.color);
     });
 
-    // Ensure session for anonymous users
     if (!props.auth.user) {
         await ensureSession();
     }
