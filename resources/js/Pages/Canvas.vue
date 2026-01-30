@@ -17,6 +17,12 @@
             <h1 class="text-white text-2xl font-bold tracking-tight drop-shadow-lg">
                 Plop.Place
             </h1>
+            <Link
+                href="/stats"
+                class="text-gray-400 hover:text-white text-sm bg-gray-900/80 px-3 py-1 rounded transition-colors"
+            >
+                Stats
+            </Link>
             <div
                 v-if="wsConnected"
                 class="flex items-center gap-2 text-green-400 text-sm bg-gray-900/80 px-2 py-1 rounded"
@@ -98,6 +104,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import { Link } from '@inertiajs/vue3';
 import CanvasRenderer from '@/Components/Canvas/CanvasRenderer.vue';
 import ColorPalette from '@/Components/Pixel/ColorPalette.vue';
 import CooldownTimer from '@/Components/Pixel/CooldownTimer.vue';
