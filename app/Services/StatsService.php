@@ -50,7 +50,8 @@ class StatsService
                     'name' => $u->name,
                     'pixels_placed' => $u->pixels_placed,
                     'type' => 'user',
-                ]);
+                ])
+                ->toArray();
 
             // Get anonymous sessions
             $anonymous = AnonymousSession::select('id', 'pixels_placed')
@@ -63,10 +64,12 @@ class StatsService
                     'name' => 'Anonymous #' . $s->id,
                     'pixels_placed' => $s->pixels_placed,
                     'type' => 'anonymous',
-                ]);
+                ])
+                ->toArray();
 
-            // Merge and sort
-            return $users->merge($anonymous)
+            // Merge and sort using base collection
+            return collect($users)
+                ->merge($anonymous)
                 ->sortByDesc('pixels_placed')
                 ->take($limit)
                 ->values()
