@@ -15,7 +15,7 @@ class CanvasService
 
     // 16-color palette (similar to r/place)
     public const PALETTE = [
-        0 => '#6D001A',  // Dark red
+        0 => '#000000',  // Black
         1 => '#BE0039',  // Red
         2 => '#FF4500',  // Orange
         3 => '#FFA800',  // Yellow
