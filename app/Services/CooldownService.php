@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Redis;
 
 class CooldownService
 {
-    public const COOLDOWN_SECONDS = 60; // 1 minute cooldown
+    public const COOLDOWN_SECONDS = 5; // 5 second cooldown
     public const USER_COOLDOWN_PREFIX = 'cooldown:user:';
     public const SESSION_COOLDOWN_PREFIX = 'cooldown:session:';
 
