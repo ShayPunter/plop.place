@@ -11,26 +11,26 @@ class CanvasService
     public const CANVAS_HEIGHT = 1000;
     public const BITS_PER_PIXEL = 4; // 16 colors (0-15)
     public const REDIS_KEY = 'canvas:state';
-    public const DEFAULT_COLOR = 2; // White
+    public const DEFAULT_COLOR = 15; // White
 
-    // 16-color palette
+    // 16-color palette (similar to r/place)
     public const PALETTE = [
-        0 => '#000000',  // Black
-        1 => '#888888',  // Grey
-        2 => '#FFFFFF',  // White
-        3 => '#FF0000',  // Red
-        4 => '#FF8800',  // Orange
-        5 => '#FFFF00',  // Yellow
-        6 => '#88FF00',  // Lime
-        7 => '#00FF00',  // Green
-        8 => '#00FF88',  // Spring green
-        9 => '#00FFFF',  // Cyan
-        10 => '#0088FF', // Sky blue
-        11 => '#0000FF', // Blue
-        12 => '#8800FF', // Purple
-        13 => '#FF00FF', // Magenta
-        14 => '#FF0088', // Pink
-        15 => '#884400', // Brown
+        0 => '#6D001A',  // Dark red
+        1 => '#BE0039',  // Red
+        2 => '#FF4500',  // Orange
+        3 => '#FFA800',  // Yellow
+        4 => '#FFD635',  // Light yellow
+        5 => '#00A368',  // Green
+        6 => '#00CC78',  // Light green
+        7 => '#7EED56',  // Lime
+        8 => '#00756F',  // Teal
+        9 => '#009EAA',  // Cyan
+        10 => '#2450A4', // Blue
+        11 => '#3690EA', // Light blue
+        12 => '#51E9F4', // Sky blue
+        13 => '#493AC1', // Purple
+        14 => '#811E9F', // Magenta
+        15 => '#FFFFFF', // White
     ];
 
     public function getPixel(int $x, int $y): int
