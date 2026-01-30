@@ -485,10 +485,11 @@ function handleWheel(event: WheelEvent) {
     const oldZoom = viewport.zoom;
     const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, viewport.zoom * delta));
 
-    // Zoom towards cursor
-    const factor = 1 - newZoom / oldZoom;
-    viewport.x += (canvasX - viewport.x) * factor;
-    viewport.y += (canvasY - viewport.y) * factor;
+    // Zoom towards cursor position
+    // Keep the canvas point under the cursor at the same screen position
+    const zoomRatio = oldZoom / newZoom;
+    viewport.x = canvasX + (viewport.x - canvasX) * zoomRatio;
+    viewport.y = canvasY + (viewport.y - canvasY) * zoomRatio;
     viewport.zoom = newZoom;
 
     clampViewport();
