@@ -104,7 +104,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import CanvasRenderer from '@/Components/Canvas/CanvasRenderer.vue';
 import ColorPalette from '@/Components/Pixel/ColorPalette.vue';
@@ -168,6 +168,26 @@ const helpText = computed(() => {
     }
     return 'Scroll to zoom | Right-click drag to pan | Left-click to place pixel';
 });
+
+// Track when we last refreshed to avoid rapid refreshes
+let lastRefreshTime = 0;
+const REFRESH_COOLDOWN_MS = 5000; // Don't refresh more than once every 5 seconds
+
+async function handleVisibilityChange() {
+    if (document.visibilityState === 'visible') {
+        const now = Date.now();
+        if (now - lastRefreshTime < REFRESH_COOLDOWN_MS) {
+            return;
+        }
+        lastRefreshTime = now;
+
+        // Reload canvas data to catch any missed updates
+        await loadCanvas();
+
+        // Force re-render
+        canvasRef.value?.requestRender();
+    }
+}
 
 async function ensureSession(): Promise<string | null> {
     if (props.auth.user) return null;
@@ -274,5 +294,12 @@ onMounted(async () => {
     if (!props.auth.user) {
         await ensureSession();
     }
+
+    // Refresh canvas when user returns to tab (catches missed WebSocket updates)
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+});
+
+onUnmounted(() => {
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
 });
 </script>
