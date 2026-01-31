@@ -56,32 +56,35 @@
         <!-- Mobile Place Button -->
         <Transition
             enter-active-class="transition ease-out duration-200"
-            enter-from-class="opacity-0 translate-y-4"
+            enter-from-class="opacity-0 translate-y-full"
             enter-to-class="opacity-100 translate-y-0"
             leave-active-class="transition ease-in duration-150"
             leave-from-class="opacity-100 translate-y-0"
-            leave-to-class="opacity-0 translate-y-4"
+            leave-to-class="opacity-0 translate-y-full"
         >
             <div
                 v-if="isTouchDevice && hasSelectedPixel"
-                class="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-30 flex items-center gap-3"
+                class="absolute bottom-0 left-0 right-0 z-30 bg-gray-900/95 backdrop-blur-sm px-4 py-3"
+                style="padding-bottom: max(0.75rem, env(safe-area-inset-bottom))"
             >
-                <div class="bg-gray-900/95 backdrop-blur-sm rounded-lg px-4 py-2 text-white text-sm">
-                    ({{ selectedPixelX }}, {{ selectedPixelY }})
+                <div class="flex items-center justify-center gap-3">
+                    <div class="text-white text-sm">
+                        ({{ selectedPixelX }}, {{ selectedPixelY }})
+                    </div>
+                    <button
+                        @click="placeSelectedPixel"
+                        :disabled="!canPlace"
+                        class="bg-green-600 active:bg-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold px-6 py-3 rounded-lg shadow-lg transition-colors"
+                    >
+                        {{ canPlace ? 'Place Pixel' : 'Wait...' }}
+                    </button>
+                    <button
+                        @click="cancelSelection"
+                        class="bg-gray-700 active:bg-gray-600 text-white px-4 py-3 rounded-lg shadow-lg transition-colors"
+                    >
+                        Cancel
+                    </button>
                 </div>
-                <button
-                    @click="placeSelectedPixel"
-                    :disabled="!canPlace"
-                    class="bg-green-600 hover:bg-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold px-6 py-3 rounded-lg shadow-lg transition-colors"
-                >
-                    {{ canPlace ? 'Place Pixel' : 'Wait...' }}
-                </button>
-                <button
-                    @click="cancelSelection"
-                    class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-3 rounded-lg shadow-lg transition-colors"
-                >
-                    Cancel
-                </button>
             </div>
         </Transition>
 
