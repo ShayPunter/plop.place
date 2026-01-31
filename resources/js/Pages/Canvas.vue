@@ -10,6 +10,7 @@
             :can-place="canPlace"
             @pixel-click="handlePixelClick"
             @pixel-hover="handlePixelHover"
+            @pixel-tap="handlePixelTap"
         />
 
         <!-- Top bar -->
@@ -51,6 +52,38 @@
                 <span class="sm:hidden">Anonymous</span>
             </div>
         </div>
+
+        <!-- Mobile Place Button -->
+        <Transition
+            enter-active-class="transition ease-out duration-200"
+            enter-from-class="opacity-0 translate-y-4"
+            enter-to-class="opacity-100 translate-y-0"
+            leave-active-class="transition ease-in duration-150"
+            leave-from-class="opacity-100 translate-y-0"
+            leave-to-class="opacity-0 translate-y-4"
+        >
+            <div
+                v-if="isTouchDevice && hasSelectedPixel"
+                class="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-30 flex items-center gap-3"
+            >
+                <div class="bg-gray-900/95 backdrop-blur-sm rounded-lg px-4 py-2 text-white text-sm">
+                    ({{ selectedPixelX }}, {{ selectedPixelY }})
+                </div>
+                <button
+                    @click="placeSelectedPixel"
+                    :disabled="!canPlace"
+                    class="bg-green-600 hover:bg-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold px-6 py-3 rounded-lg shadow-lg transition-colors"
+                >
+                    {{ canPlace ? 'Place Pixel' : 'Wait...' }}
+                </button>
+                <button
+                    @click="cancelSelection"
+                    class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-3 rounded-lg shadow-lg transition-colors"
+                >
+                    Cancel
+                </button>
+            </div>
+        </Transition>
 
         <!-- Bottom toolbar -->
         <div class="absolute bottom-2 sm:bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col sm:flex-row items-center gap-2 sm:gap-4 z-20 w-full sm:w-auto px-2 sm:px-0">
@@ -160,11 +193,16 @@ const hoveredX = ref<number | null>(null);
 const hoveredY = ref<number | null>(null);
 const hoveredColor = ref(15);
 
+// Mobile tap-to-select state
+const selectedPixelX = ref<number | null>(null);
+const selectedPixelY = ref<number | null>(null);
+const hasSelectedPixel = computed(() => selectedPixelX.value !== null && selectedPixelY.value !== null);
+
 // Touch detection
 const isTouchDevice = ref(false);
 const helpText = computed(() => {
     if (isTouchDevice.value) {
-        return 'Pinch to zoom | Drag to pan | Tap to place pixel';
+        return 'Pinch to zoom | Drag to pan | Tap to select, then Place';
     }
     return 'Scroll to zoom | Right-click drag to pan | Left-click to place pixel';
 });
@@ -266,6 +304,27 @@ function handlePixelHover(x: number, y: number, color: number) {
     hoveredX.value = x;
     hoveredY.value = y;
     hoveredColor.value = color;
+}
+
+function handlePixelTap(x: number, y: number) {
+    // On mobile, tap selects the pixel for placement confirmation
+    selectedPixelX.value = x;
+    selectedPixelY.value = y;
+}
+
+async function placeSelectedPixel() {
+    if (selectedPixelX.value === null || selectedPixelY.value === null) return;
+
+    await handlePixelClick(selectedPixelX.value, selectedPixelY.value);
+
+    // Clear selection after placing
+    selectedPixelX.value = null;
+    selectedPixelY.value = null;
+}
+
+function cancelSelection() {
+    selectedPixelX.value = null;
+    selectedPixelY.value = null;
 }
 
 function handleCooldownComplete() {

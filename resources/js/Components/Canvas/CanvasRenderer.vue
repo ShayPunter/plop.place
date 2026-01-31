@@ -62,6 +62,7 @@ const props = defineProps<Props>();
 const emit = defineEmits<{
     pixelClick: [x: number, y: number];
     pixelHover: [x: number, y: number, color: number];
+    pixelTap: [x: number, y: number];
 }>();
 
 // Refs
@@ -497,11 +498,14 @@ function handleWheel(event: WheelEvent) {
 }
 
 // Touch handlers
+const lastTouchPos = ref({ x: 0, y: 0 });
+
 function handleTouchStart(event: TouchEvent) {
     if (event.touches.length === 1) {
         const touch = event.touches[0];
         isDragging.value = true;
         dragStart.value = { x: touch.clientX, y: touch.clientY };
+        lastTouchPos.value = { x: touch.clientX, y: touch.clientY };
         viewportStart.value = { x: viewport.x, y: viewport.y };
 
         const { x, y } = screenToCanvas(touch.clientX, touch.clientY);
@@ -519,12 +523,19 @@ function handleTouchStart(event: TouchEvent) {
 function handleTouchMove(event: TouchEvent) {
     if (event.touches.length === 1 && isDragging.value) {
         const touch = event.touches[0];
+        lastTouchPos.value = { x: touch.clientX, y: touch.clientY };
         const dx = touch.clientX - dragStart.value.x;
         const dy = touch.clientY - dragStart.value.y;
         viewport.x = viewportStart.value.x - dx / viewport.zoom;
         viewport.y = viewportStart.value.y - dy / viewport.zoom;
         clampViewport();
         requestRender();
+
+        // Update hovered pixel during drag
+        const { x, y } = screenToCanvas(touch.clientX, touch.clientY);
+        if (x >= 0 && x < props.config.width && y >= 0 && y < props.config.height) {
+            hoveredPixel.value = { x, y };
+        }
     } else if (event.touches.length === 2) {
         const dx = event.touches[0].clientX - event.touches[1].clientX;
         const dy = event.touches[0].clientY - event.touches[1].clientY;
@@ -543,11 +554,13 @@ function handleTouchMove(event: TouchEvent) {
 
 function handleTouchEnd(event: TouchEvent) {
     if (event.touches.length === 0) {
-        if (isDragging.value && hoveredPixel.value && props.canPlace) {
-            const dx = Math.abs(dragStart.value.x - viewportStart.value.x);
-            const dy = Math.abs(dragStart.value.y - viewportStart.value.y);
+        if (isDragging.value && hoveredPixel.value) {
+            // Check if this was a tap (minimal movement) vs a drag
+            const dx = Math.abs(lastTouchPos.value.x - dragStart.value.x);
+            const dy = Math.abs(lastTouchPos.value.y - dragStart.value.y);
             if (dx < 10 && dy < 10) {
-                emit('pixelClick', hoveredPixel.value.x, hoveredPixel.value.y);
+                // Emit pixelTap for touch selection (let parent handle placement UI)
+                emit('pixelTap', hoveredPixel.value.x, hoveredPixel.value.y);
             }
         }
         isDragging.value = false;
