@@ -13,46 +13,47 @@
         />
 
         <!-- Top bar -->
-        <div class="absolute top-4 left-4 flex items-center gap-4 z-20">
-            <h1 class="text-white text-2xl font-bold tracking-tight drop-shadow-lg">
+        <div class="absolute top-2 sm:top-4 left-2 sm:left-4 flex items-center gap-2 sm:gap-4 z-20">
+            <h1 class="text-white text-xl sm:text-2xl font-bold tracking-tight drop-shadow-lg">
                 Plop.Place
             </h1>
             <Link
                 href="/stats"
-                class="text-gray-400 hover:text-white text-sm bg-gray-900/80 px-3 py-1 rounded transition-colors"
+                class="text-gray-400 hover:text-white text-xs sm:text-sm bg-gray-900/80 px-2 sm:px-3 py-1 rounded transition-colors"
             >
                 Stats
             </Link>
             <div
                 v-if="wsConnected"
-                class="flex items-center gap-2 text-green-400 text-sm bg-gray-900/80 px-2 py-1 rounded"
+                class="flex items-center gap-1 sm:gap-2 text-green-400 text-xs sm:text-sm bg-gray-900/80 px-2 py-1 rounded"
             >
                 <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                Live
+                <span class="hidden sm:inline">Live</span>
             </div>
-            <div v-else class="flex items-center gap-2 text-yellow-400 text-sm bg-gray-900/80 px-2 py-1 rounded">
+            <div v-else class="flex items-center gap-1 sm:gap-2 text-yellow-400 text-xs sm:text-sm bg-gray-900/80 px-2 py-1 rounded">
                 <span class="w-2 h-2 bg-yellow-400 rounded-full" />
-                Connecting...
+                <span class="hidden sm:inline">Connecting...</span>
             </div>
         </div>
 
         <!-- User info -->
-        <div class="absolute top-4 right-4 z-20">
+        <div class="absolute top-2 sm:top-4 right-2 sm:right-4 z-20">
             <div
                 v-if="auth.user"
-                class="bg-gray-900/90 backdrop-blur-sm rounded-lg px-4 py-2 text-white text-sm"
+                class="bg-gray-900/90 backdrop-blur-sm rounded-lg px-2 sm:px-4 py-1 sm:py-2 text-white text-xs sm:text-sm"
             >
                 <span class="text-gray-400">{{ auth.user.name }}</span>
-                <span class="mx-2 text-gray-600">|</span>
-                <span class="text-blue-400">{{ auth.user.pixels_placed }} pixels</span>
+                <span class="mx-1 sm:mx-2 text-gray-600">|</span>
+                <span class="text-blue-400">{{ auth.user.pixels_placed }} <span class="hidden sm:inline">pixels</span><span class="sm:hidden">px</span></span>
             </div>
-            <div v-else class="bg-gray-900/90 backdrop-blur-sm rounded-lg px-4 py-2 text-gray-400 text-sm">
-                Playing anonymously
+            <div v-else class="bg-gray-900/90 backdrop-blur-sm rounded-lg px-2 sm:px-4 py-1 sm:py-2 text-gray-400 text-xs sm:text-sm">
+                <span class="hidden sm:inline">Playing anonymously</span>
+                <span class="sm:hidden">Anonymous</span>
             </div>
         </div>
 
         <!-- Bottom toolbar -->
-        <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-end gap-4 z-20">
+        <div class="absolute bottom-2 sm:bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col sm:flex-row items-center gap-2 sm:gap-4 z-20 w-full sm:w-auto px-2 sm:px-0">
             <!-- Color palette -->
             <ColorPalette
                 :palette="canvasConfig.palette"
@@ -68,8 +69,8 @@
             />
         </div>
 
-        <!-- Pixel info (bottom right) -->
-        <div class="absolute bottom-4 right-4 z-20">
+        <!-- Pixel info (bottom right) - hidden on mobile to avoid overlap -->
+        <div class="absolute bottom-2 sm:bottom-4 right-2 sm:right-4 z-20 hidden sm:block">
             <PixelInfo
                 :x="hoveredX"
                 :y="hoveredY"
@@ -96,8 +97,8 @@
         </Transition>
 
         <!-- Help tooltip -->
-        <div class="absolute top-4 left-1/2 transform -translate-x-1/2 text-gray-500 text-xs z-20">
-            Scroll to zoom | Right-click drag to pan | Left-click to place pixel
+        <div class="absolute top-2 sm:top-4 left-1/2 transform -translate-x-1/2 text-gray-500 text-xs z-20 text-center px-2">
+            {{ helpText }}
         </div>
     </div>
 </template>
@@ -158,6 +159,15 @@ const sessionToken = ref<string | null>(props.initialState.sessionToken);
 const hoveredX = ref<number | null>(null);
 const hoveredY = ref<number | null>(null);
 const hoveredColor = ref(15);
+
+// Touch detection
+const isTouchDevice = ref(false);
+const helpText = computed(() => {
+    if (isTouchDevice.value) {
+        return 'Pinch to zoom | Drag to pan | Tap to place pixel';
+    }
+    return 'Scroll to zoom | Right-click drag to pan | Left-click to place pixel';
+});
 
 async function ensureSession(): Promise<string | null> {
     if (props.auth.user) return null;
@@ -250,6 +260,9 @@ function showError(message: string) {
 }
 
 onMounted(async () => {
+    // Detect touch device
+    isTouchDevice.value = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
     await loadCanvas();
     initWebSocket();
 
