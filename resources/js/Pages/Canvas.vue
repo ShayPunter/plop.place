@@ -8,6 +8,7 @@
             :loading="loading"
             :selected-color="selectedColor"
             :can-place="canPlace"
+            :selected-pixel="hasSelectedPixel ? { x: selectedPixelX!, y: selectedPixelY! } : null"
             @pixel-click="handlePixelClick"
             @pixel-hover="handlePixelHover"
             @pixel-tap="handlePixelTap"

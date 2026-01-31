@@ -55,6 +55,7 @@ interface Props {
     loading: boolean;
     selectedColor: number;
     canPlace: boolean;
+    selectedPixel?: { x: number; y: number } | null;
 }
 
 const props = defineProps<Props>();
@@ -257,8 +258,10 @@ function render() {
     c.strokeRect(borderX, borderY, canvasWidth * zoom, canvasHeight * zoom);
 
     // Draw hover highlight with high contrast
-    if (hoveredPixel.value && !isDragging.value) {
-        drawCursor(c, centerX, centerY, zoom, canvasWidth, canvasHeight);
+    // Use selectedPixel prop (for mobile) or hoveredPixel (for desktop)
+    const pixelToHighlight = props.selectedPixel || (hoveredPixel.value && !isDragging.value ? hoveredPixel.value : null);
+    if (pixelToHighlight) {
+        drawCursor(c, centerX, centerY, zoom, canvasWidth, canvasHeight, pixelToHighlight);
     }
 }
 
@@ -321,10 +324,11 @@ function drawCursor(
     centerY: number,
     zoom: number,
     canvasWidth: number,
-    canvasHeight: number
+    canvasHeight: number,
+    pixel: { x: number; y: number }
 ) {
-    const hx = hoveredPixel.value!.x;
-    const hy = hoveredPixel.value!.y;
+    const hx = pixel.x;
+    const hy = pixel.y;
 
     if (hx < 0 || hx >= canvasWidth || hy < 0 || hy >= canvasHeight) return;
 
@@ -561,10 +565,16 @@ function handleTouchEnd(event: TouchEvent) {
             if (dx < 10 && dy < 10) {
                 // Emit pixelTap for touch selection (let parent handle placement UI)
                 emit('pixelTap', hoveredPixel.value.x, hoveredPixel.value.y);
+                // Keep hoveredPixel set and re-render to show the selection
+                requestRender();
+            } else {
+                // Was a drag, clear the hover
+                hoveredPixel.value = null;
             }
         }
         isDragging.value = false;
         lastPinchDistance.value = 0;
+        requestRender();
     }
 }
 
@@ -638,6 +648,14 @@ watch(
         }
     },
     { immediate: true }
+);
+
+// Watch for selected pixel changes (mobile)
+watch(
+    () => props.selectedPixel,
+    () => {
+        requestRender();
+    }
 );
 
 // Expose methods
